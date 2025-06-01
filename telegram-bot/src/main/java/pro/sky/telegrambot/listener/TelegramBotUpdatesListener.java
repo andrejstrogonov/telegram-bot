@@ -11,6 +11,13 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+import pro.sky.telegrambot.model.NotificationTask;
+import pro.sky.telegrambot.repository.NotificationTaskRepository;
 
 @Service
 public class TelegramBotUpdatesListener implements UpdatesListener {
@@ -19,6 +26,11 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     @Autowired
     private TelegramBot telegramBot;
+
+    @Autowired
+    private NotificationTaskRepository notificationTaskRepository;
+
+    private static final Pattern MESSAGE_PATTERN = Pattern.compile("(\\d{2}\\.\\d{2}\\.\\d{4}\\s\\d{2}:\\d{2})(\\s+)(.+)");
 
     @PostConstruct
     public void init() {
@@ -29,9 +41,27 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         updates.forEach(update -> {
             logger.info("Processing update: {}", update);
-            if (update.message() != null && "/start".equals(update.message().text())) {
-                long chatId = update.message().chat().id();
-                telegramBot.execute(new SendMessage(chatId, "Welcome to our Telegram Bot!"));
+            if (update.message() != null) {
+                String messageText = update.message().text();
+                Matcher matcher = MESSAGE_PATTERN.matcher(messageText);
+                if (matcher.matches()) {
+                    String dateTimeString = matcher.group(1);
+                    String reminderText = matcher.group(3);
+
+                    LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+
+                    NotificationTask notificationTask = new NotificationTask();
+                    notificationTask.setChatId(update.message().chat().id());
+                    notificationTask.setNotificationText(reminderText);
+                    notificationTask.setSendDatetime(dateTime);
+
+                    notificationTaskRepository.save(notificationTask);
+
+                    telegramBot.execute(new SendMessage(update.message().chat().id(), "Reminder saved successfully!"));
+                } else if ("/start".equals(messageText)) {
+                    long chatId = update.message().chat().id();
+                    telegramBot.execute(new SendMessage(chatId, "Welcome to our Telegram Bot!"));
+                }
             }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
