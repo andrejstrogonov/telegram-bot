@@ -5,3 +5,4 @@
 /mavenHomeManager.xml
 # CodeStream ignored files
 /../../telegram-bot\.idea/codestream.xml
+/codeStyles/codestream.xml
