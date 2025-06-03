@@ -19,6 +19,14 @@ public class NotificationTask {
 
     private LocalDateTime sendDatetime;
 
+    // Constructor
+    public NotificationTask(Long chatId, String notificationText, LocalDateTime sendDatetime, LocalDateTime dateTimesDepartures) {
+        this.chatId = chatId;
+        this.notificationText = notificationText;
+        this.sendDatetime = sendDatetime;
+        // Assuming dateTimesDepartures is used for some purpose, otherwise it can be removed
+    }
+
     // Getters and Setters
 
     public Long getId() {
