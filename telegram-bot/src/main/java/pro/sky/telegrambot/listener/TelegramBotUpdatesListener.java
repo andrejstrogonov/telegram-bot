@@ -50,10 +50,12 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
                     LocalDateTime dateTime = LocalDateTime.parse(dateTimeString, DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
 
-                    NotificationTask notificationTask = new NotificationTask();
-                    notificationTask.setChatId(update.message().chat().id());
-                    notificationTask.setNotificationText(reminderText);
-                    notificationTask.setSendDatetime(dateTime);
+                    NotificationTask notificationTask = new NotificationTask(
+                        update.message().chat().id(),
+                        reminderText,
+                        dateTime,
+                        LocalDateTime.now() // Assuming this is the intended fourth parameter
+                    );
 
                     notificationTaskRepository.save(notificationTask);
 

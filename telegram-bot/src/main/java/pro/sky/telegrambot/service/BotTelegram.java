@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.model.NotificationTask;
-import pro.sky.telegrambot.repository.TelegramRepository;
+import pro.sky.telegrambot.repository.NotificationTaskRepository;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,28 +20,19 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
-import org.springframework.stereotype.Service;
-
-@Service
-public class BotService {
-
-    public void sendMessage(Long chatId, String message) {
-        // Logic to send a message to the chat
-        System.out.println("Sending message to chat " + chatId + ": " + message);
-        // Here you would integrate with the actual Telegram Bot API
-    }
-    private final TelegramRepository telegramRepository;
+public class BotTelegram {
+    private final NotificationTaskRepository notificationTaskRepository;
     private final TelegramBot telegramBot;
 
     @Autowired
-    public BotService(TelegramRepository telegramRepository, TelegramBot telegramBot) {
-        this.telegramRepository = telegramRepository;
+    public BotTelegram(NotificationTaskRepository notificationTaskRepository, TelegramBot telegramBot) {
+        this.notificationTaskRepository = notificationTaskRepository;
         this.telegramBot = telegramBot;
     }
 
     Set<NotificationTask> basesTextDateTime = new HashSet<>();
 
-    private Logger logger = LoggerFactory.getLogger(BotService.class);
+    private Logger logger = LoggerFactory.getLogger(BotTelegram.class);
 
     //Отправляем сообщение
     public void sendingMessage(Long chatId, String string) {
@@ -51,7 +42,7 @@ public class BotService {
 
     //заносим в Set первоначальные исходные данные объектов при запуске приложения
     public void initialization() {
-        basesTextDateTime = telegramRepository.listNotification(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
+        basesTextDateTime = notificationTaskRepository.listNotification(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
     }
 
     public void processingMessages(Long chatId, String messageText) {
@@ -77,11 +68,11 @@ public class BotService {
     @Scheduled(cron = "0/59 * * * * ?")
     public void executeTask() {
         //проводим поиск элементов с текущим временем
-        List<NotificationTask> listObjectEqualsDate = basesTextDateTime.stream().filter(object -> object.getDateTimeNotification()
+        List<NotificationTask> listObjectEqualsDate = basesTextDateTime.stream().filter(object -> object.getSendDatetime()
                 .equals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES))).collect(Collectors.toList());
         if (listObjectEqualsDate != null) {
             //выводим сообщение с текущей датой в телеграмм
-            listObjectEqualsDate.forEach(variable -> sendingMessage(variable.getChatId(), variable.getTextNotification()));
+            listObjectEqualsDate.forEach(variable -> sendingMessage(variable.getChatId(), variable.getNotificationText()));
             //удаляем данные отработанные из basesTextDateTime
             listObjectEqualsDate.stream().map(object -> basesTextDateTime.remove(object));
         }
@@ -90,7 +81,7 @@ public class BotService {
     //записываем данные сообщения в базу данных
     private void setSql(Long chatId, String textMessage, LocalDateTime dateTimeNotatification, LocalDateTime dateTimesDepartures) {
         NotificationTask sql = new NotificationTask(chatId, textMessage, dateTimeNotatification, dateTimesDepartures);
-        telegramRepository.save(sql);
+        notificationTaskRepository.save(sql);
     }
 
     private void controlSendingControl(SendResponse sendResponse) {
